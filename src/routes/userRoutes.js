@@ -6,17 +6,16 @@ const {isAuthUser} = require('../middlewares/authUser')
 const userRoutes = express.Router();
 
 // USER ROUTES
-userRoutes.get('/users', user.index) // GET ALL USERS 
-userRoutes.get('/user/favorites', isAuthUser, user.allFav) // RETURN ALL ITEMS FROM FAVORITES LIST
-userRoutes.post('/user/:userId/favorites/new/:id', user.addToFavorites) // ADD ITEM IN FAVORITES LIST
-userRoutes.post('/sign-up/user', user.register) // CREATE NEW USER
-userRoutes.post('/sign-in/user', user.login) // LOGIN USER
-userRoutes.post('/user/forgot-password', user.forgotPassword) // SEND LINK TO RESET PASSSWORD
-userRoutes.post('/user/valid-token', user.verifyToken) // VERIFY IF TOKEN IS VALID OR NOT
-userRoutes.post('/user/reset-password/', user.resetPassword) // RESET PASSWORD AND SAVE IN BD
-userRoutes.post('/user/upload-profile', isAuthUser, upload.single('avatar'), user.uploadProfile) //UPLOAD IMAGE PROFILE
-
-userRoutes.delete('/user/favorites/delete', isAuthUser, user.removeFavorites) // REMOVE ITEM FROM FAVORITES LIST
-userRoutes.delete('/user/delete/:id', user.delete) // DELETE USER
+userRoutes.get('/users', user.index) // RETORNA TODOS OS USUÁRIOS
+userRoutes.post('/favorites/new', isAuthUser, user.addToFavorites) // INSERE UM NOVO PRODUTO NA LISTA DE FAVORITOS DO USUÁRIO
+userRoutes.get('/user/favorites', isAuthUser, user.allFav) // RETORNA TODOS OS PRODUTOS NA LISTA DE FAVORITOS DO USUÁRIO
+userRoutes.post('/sign-up/user', user.register) // CRIA UM NOVO USUÁRIO
+userRoutes.post('/sign-in/user', user.login) // LOGIN USUÁRIO
+userRoutes.post('/user/forgot-password', user.forgotPassword) // ENVIA UM LINK COM REDEFINIÇÃO DE SENHA
+userRoutes.post('/user/valid-token', user.verifyToken) // VERIFICA SE O TOKEN DE REDEFINIÇÃO DE SENHA É VÁLIDO
+userRoutes.post('/user/reset-password', user.resetPassword) // ALTERA E SALVA A SENHA NOVA
+userRoutes.post('/user/upload-profile', isAuthUser, upload.single('avatar'), user.uploadProfile) // SALVA A IMAGEM DE PERFIL DO USUÁRIO
+userRoutes.delete('/favorites/delete', isAuthUser, user.removeFavorites) // REMOVE UM PRODUTO DA LISTA DOS FAVORITOS DO USUÁRIO
+userRoutes.delete('/user/delete', user.delete) // DELETA O USUÁRIO
 
 module.exports = userRoutes;

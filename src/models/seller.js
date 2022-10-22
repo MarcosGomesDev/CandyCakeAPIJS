@@ -4,9 +4,10 @@ const PointSchema = require('../utils/pointSchema')
 
 const sellerSchema = Schema({
     name: {type: String},
+    lastName: {type: String},
+    storeName: {type: String},
     email: {type: String},
     password: {type: String},
-    address: {type: String},
     avatar: {type: String},
     seller: {type: Boolean},
     avatarId: String,
@@ -29,7 +30,9 @@ const sellerSchema = Schema({
     }],
     socialMedias: [
         {
-            type: String
+            instagram: {type: String},
+            facebook: {type: String},
+            whatsapp: {type: String}
         }
     ],
     createdAt: {type: String},

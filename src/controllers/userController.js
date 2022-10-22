@@ -8,14 +8,12 @@ const Token = require("../models/token");
 const sendEmail = require("../utils/sendEmail")
 const cloudinary = require('../helper/cloudinaryAuth')
 const moment = require('moment');
-const { request } = require('express');
 
 var date = moment().format('LLL')
 
 module.exports = {
-    //READ USERS
+    // RETONAR TODOS OS USUÁRIOS
     async index(req, res) {
-        // GET ALL USERS
         try {
             const users = await User.find()
             
@@ -26,11 +24,11 @@ module.exports = {
         }
     },
 
-    //CREATE USER
+    // INSERE UM NOVO USUÁRIO
     async register(req, res) {
-        const {name, email, password} = req.body
+        const {name, lastname, email, password} = req.body
 
-        //Validations
+        // VALIDAÇÕES
         if(!name) {
             return res.status(401).json('O nome é obrigatório!')
         }
@@ -43,20 +41,21 @@ module.exports = {
             return res.status(401).json('A senha é obrigatória!')
         }
 
-        // VERIFIED IF USER EXISTS
+        // VERIFICA SE O USUÁRIO EXISTE
         const userExist = await User.findOne({email: email})
 
         if(userExist) {
             return res.status(401).json('Este email já está sendo utilizado!')
         }
 
-        // HASHING THE PASSWORD
+        // CRIPTOGRAFA A SENHA INSERIDA
         const salt = await bcrypt.genSalt(12)
         const passwordHash = await bcrypt.hash(password, salt)
 
-        // METHOD OF SAVE NEW USER
+        // MÉTODO PARA SALVAR UM NOVO USUÁRIO
         const user = new User({
             name,
+            lastname,
             email,
             password: passwordHash,
             admin: false,
@@ -65,35 +64,29 @@ module.exports = {
         });
 
         try {
-            // SAVE NEW USER
+            // SALVANDO O NOVO USUÁRIO
             await user.save()
 
-            // AFTER SAVE SHOW THIS
             return res.status(201).json('Úsuario criado com sucesso!')
         } catch (error) {
-            // IF HAVE AN ERROR SHOW THIS
             console.log(error)
             return res.status(500).json('Erro ao criar usuário, tente novamente mais tarde!')
         }
     },
 
-    // DELETE USER
+    // EXCLUÍ O USUÁRIO
     async delete(req, res) {
-        const {user} = req
-
-        if(!user) {
-            return res.status(401).json( "Acesso não autorizado")
-        }
+        const {userAuth} = req
 
         try {
-            await User.findByIdAndDelete({_id: user._id})
+            await User.findByIdAndDelete({_id: userAuth._id})
             return res.status(200).json('Usuário deletado com sucesso')
         } catch (error) {
             return res.status(500).json('Erro ao deletar o usuário')
         }
     },
 
-    // Login user
+    // LOGIN USUÁRIO
     async login(req, res) {
         const {email, password} = req.body
         //Validations
@@ -102,7 +95,8 @@ module.exports = {
         }
         
         //Check if user exists
-        const user = await User.findOne({email: email})
+        const user = await User.findOne({email: email}, 
+            {name: 1, email: 1, password: 1, avatar: 1, seller: 1, admin: 1})
 
         if(!user) {
             return res.status(401).json('Não existe nenhum usuário com este email!')
@@ -132,7 +126,7 @@ module.exports = {
         }
     },
 
-    // SEND LINK FOR RESET PASSWORD
+    // ENVIA UM LINK COM O TOKEN PARA REDEFINIR A SENHA DO USUÁRIO
     async forgotPassword(req, res) {
         const {email} = req.body
 
@@ -172,6 +166,7 @@ module.exports = {
         }
     },
 
+    // VERIFICA SE O TOKEN ESTÁ VÁLIDO PARA REDEFINIR A SENHA
     async verifyToken(req, res) {
         const {email} = req.query
         const {token} = req.body
@@ -198,7 +193,7 @@ module.exports = {
         }
     },
 
-    //RESET AND SAVE NEW PASSWORD
+    // ALTERA E SALVA A NOVA SENHA
     async resetPassword(req, res) {
         const {password} = req.body
         const {token} = req.query
@@ -231,7 +226,7 @@ module.exports = {
         }
     },
 
-    //UPLOAD PROFILE
+    // ATUALIZA A FOTO DO PERFIL DO USUÁRIO
     async uploadProfile(req, res) {
         const {userAuth} = req
         
@@ -268,7 +263,7 @@ module.exports = {
 
     },
 
-    //RETURN ALL ITEMS IN FAVORITES LIST ON USER
+    // RETORNA TODOS OS PRODUTOS FAVORITOS DO USUÁRIO
     async allFav(req, res) {
         const {userAuth} = req
 
@@ -285,10 +280,10 @@ module.exports = {
         }
     },
 
-    //ADD NEW ITEM IN FAVORITES LIST ON USER
+    // ADICIONA UM PRODUTO A LISTA DE FAVORITOS DO USUÁRIO
     async addToFavorites(req, res) {
-        const {id, userId} = req.params
-
+        const {userAuth} = req
+        const {id} = req.body
         try {
             const list = []
             
@@ -296,10 +291,10 @@ module.exports = {
             .populate('category')
             .populate('subcategory')
             .populate('seller')
-
+            
             list.push(product)
             
-            await User.findOneAndUpdate({_id: userId},
+            await User.findOneAndUpdate({_id: userAuth._id},
                 {
                     $push: {
                         favorites: list,
@@ -307,27 +302,27 @@ module.exports = {
                     updatedAt: date
                 }
             )
-
+            
             return res.status(200).json('Produto adicionado aos favoritos com sucesso!')
         } catch (error) {
             return res.status(500).json('Erro ao adicionar aos favoritos, tente novamente mais tarde!')
         }
     },
 
-    //REMOVE ITEM IN FAVORITES LIST ON USER
+    // REMOVE UM PRODUTO DA LISTA DE FAVORITOS DO USUÁRIO
     async removeFavorites(req, res) {
         const {userAuth} = req
-        const {productId} = req.query
+        const {id} = req.query
 
         try {
             await User.findOneAndUpdate({_id: userAuth._id}, {
                 $pull: {
-                    favorites: productId
+                    favorites: id
                 },
                 updatedAt: date
             })
 
-            return res.status(200).json('removido da lista de favoritos')
+            return res.status(200).json('Removido da lista de favoritos')
         } catch (error) {
             console.log(error)
             return res.status(500).json('Erro ao remover dos favoritos, tente novamente mais tarde!')

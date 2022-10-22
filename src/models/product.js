@@ -22,7 +22,6 @@ const productSchema = Schema({
     rating: [{
         userName: {type: String, default: ''},
         userId: {type: Schema.Types.ObjectId, ref: 'User'},
-        avatar: {type: String, default: ''},
         productRating: {type: Number, default: 0},
         productReview: {type: String, default: ''},
         replyRating: [{

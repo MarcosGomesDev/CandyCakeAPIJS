@@ -5,8 +5,8 @@ const Category = require('../models/category')
 const subCategory = require('../models/subCategory')
 const cloudinary = require('../helper/cloudinaryAuth')
 const moment = require('moment')
-const {getPreciseDistance} = require('geolib') ;
 const {sumOfArray, averageOfArray} = require('../utils/AverageFunction')
+const {getDistanceInKm} = require('../utils/getDistance')
 
 var date = moment().format('LLL')
 
@@ -29,13 +29,22 @@ module.exports = {
 
     // RETURN ONE PRODUCT BY ID
     async oneProduct(req, res) {
-        const {id} = req.params
+        const {userAuth} = req
+        const {id} = req.query
         try {
             const product = await Product.findOne({_id: id})
-                .populate('category')
-                .populate('subcategory')
-                .populate('seller')
-                .populate('rating.userId')
+                .populate({
+                    path: 'category',
+                    select: ['name']
+                })
+                .populate({
+                    path: 'subcategory',
+                    select: ['name']
+                })
+                .populate({
+                    path: 'seller',
+                    select: ['name']
+                })
 
             return res.status(200).json(product)
         } catch (error) {
@@ -44,42 +53,69 @@ module.exports = {
         }
     },
 
+    //RETORNA TODOS OS COMENTÁRIOS DE UM PRODUTO
+    async getAllCommentByProduct(req, res) {
+        const {userAuth} = req
+        const {id} = req.params
+
+        try {
+            const productWithComments = await Product.findOne({_id: id})
+            .populate({
+                path: "rating.userId",
+                select: ['avatar']
+            })
+            .populate({
+                path: 'rating.replyRating.sellerId',
+                select: ['avatar']
+            })
+            
+            //RETORNA TODOS OS COMETÁRIOS DO PRODUTO
+            const comments = productWithComments.rating
+            
+            return res.status(200).json(comments)
+        } catch (error) {
+            return res.status(500).json('Internal Server Error')
+        }
+    },
+
     // SEARCH PRODUCTS
     async search(req, res) {    
-        const {name} = req.query
-        const {longitude, latitude} = req.body
+        const {name, longitude, latitude} = req.query
 
         const regex = new RegExp(name, 'i')
         try {
             const products = await Product.find({
                 name: {
                     $in: regex
-                },
+                }
+            }, {name: 1, price: 1, images: 1})
+            .populate({
+                path: 'category',
+                select: ['name']
             })
-            .populate('category')
-            .populate('subcategory')
-            .populate('seller')
-            .populate('rating.userId')
+            .populate({
+                path: 'subcategory',
+                select: ['name']
+            })
+            .populate({
+                path: 'seller',
+                select: ['location']
+            })
 
-            const locationSellers = products.map((item) => item.seller.location.coordinates)
+            const productsDistances = []
 
-            const distancias = []
-            for (let i = 0; i < locationSellers.length; i++) {
-                const result = locationSellers[i]
-                const distancia = getPreciseDistance(
-                    {latitude, longitude},
-                    {latitude: result[1], longitude: result[0]},
-                )
-
-                // conversão da distancia em km e uma casa decimal apenas
-                const distanciaFinal = (distancia / 1000).toFixed(1)
-
-                //manda pro array o resultado de cada repetição
-                distancias.push({...products, distance: distanciaFinal + ' km'})
+            products.map((product) => {
+                let distance = getDistanceInKm(latitude, longitude, 
+                    product.seller.location.coordinates[1], product.seller.location.coordinates[0])
+                productsDistances.push(parseFloat(distance) + ' km')
+            })
+            
+            const result = []
+            for(let i = 0; i < products.length; i++) {
+                result.push({product: products[i], distance: productsDistances[i].replace('.', ',')})
             }
-    
 
-            return res.json(distancias)
+            return res.json(result)
         } catch (error) {
             console.log(error)
             return res.status(500).json('Erro ao retornar produtos com esse filtro')
@@ -163,10 +199,10 @@ module.exports = {
         }
     },
 
-    //UPDATE PRODUCT
+    // ATUALIZA OS DADOS DO PRODUTO
     async update(req, res) {
         const {sellerAuth} = req
-        const {id} = req.params
+        const {id} = req.query
         const {name, price, description, category, subcategory} = req.body
 
         if(!id) {
@@ -248,7 +284,7 @@ module.exports = {
 
     // REMOVE PRODUCT FROM DB AND PRODUCTS LIST FROM SELLER
     async delete(req, res) {
-        const {id} = req.params
+        const {id} = req.query
 
         try {
             const prod = await Product.findById({_id: id})
@@ -283,47 +319,45 @@ module.exports = {
 
     // ADD RATING ON PRODUCT
     async addNewRating(req, res) {
-        const {userAuth} = req; // o user já vai pra requisição pelo "isAuth" chamado na rota
-        const {id} = req.params;//id do produto a ser avaliado
+        // const {id, userId} = req.params
+        const {userAuth} = req
+        const {id} = req.params
         // const {rating_selected} = req.headers
         const {comment, rating_selected} = req.body
-
-        if(!userAuth) {
-            return res.status(401).json('Acesso não autorizado')
-        }
-
+        
         if(!comment) {
             return res.status(400).json('O comentário não pode ser vazio')
         }
-
+        
         if(!rating_selected) {
             return res.status(400).json('Nota inválida')
         }
-
+        
         // verify if the rating is inside the scope
         if(rating_selected > 5 || rating_selected < 1) {
             return res.status(400).json("Nota de avaliacao inválida")
         }
-
+        
         try {
-
+            
             const product = await Product.findById(id)
             .populate('seller')
             .populate('category')
             .populate('subcategory')
-
+            
+            const user = await User.findById(userAuth._id)
             
             if(product.rating.length >= 1) { // checking if we have 1 or more ratings
                 // search for the previous rating of the user for this product
                 const userRatingIdentifier = userAuth._id; // .toString() -> if necessary - retorna um tipo Object
-
+                
                 const previousUserRating = await Product.find({_id: id},
                     {rating: { $elemMatch: { userId: userRatingIdentifier } }})
                     // console.log(previousUserRating) // to be tested
-
+                    
                 // check if the user has at least 1 rating among product's rating
                 if(previousUserRating[0].rating[0] === undefined) { // if he doesn't
-
+                    
                     // creating a new rating
                     console.log('Criando uma nova avaliação para o usuário')
                     await product.updateOne({$push: {
@@ -334,12 +368,12 @@ module.exports = {
                             productReview: comment
                         }]
                     }});
-
+                    
                     // add the new rate value to the array of rates
                     await product.updateOne({$push: {
                         ratingNumbers: rating_selected
                     }});
-
+                    
                 } else {
                     // if the user already has a rating for the product
                     const previousUserRatingValue = previousUserRating[0].rating[0].productRating;
@@ -351,11 +385,11 @@ module.exports = {
                         "rating.$[element].userId": userAuth._id,
                         "rating.$[element].productRating": rating_selected,
                         "rating.$[element].productReview": comment
-
+                        
                     }},
                     {arrayFilters: [{"element.userId": userRatingIdentifier}]}
                     );
-
+                    
                     // replace the old value of rating by the new one, inside the array of ratings
                     await Product.updateOne({_id: id, ratingNumbers: previousUserRatingValue}, 
                         {$set: {"ratingNumbers.$": rating_selected}}
@@ -376,24 +410,24 @@ module.exports = {
                         productReview: comment
                     },
                 }});
-
+                
                 await product.updateOne({$push: {
                     ratingNumbers: rating_selected
                 }})
             }
-
+            
             product.save()
         } catch (error) {
             return res.status(500).json('Internal Server Error')
         }
-
+        
         try { // Calcs
             // totally updated product, used to do the average calcs
             const productUpdated = await Product.findById(id)
             .populate('seller')
             .populate('category')
             .populate('subcategory')
-
+            
             await productUpdated.updateOne({
                 $set: { 
                     ratingSum: sumOfArray(productUpdated.ratingNumbers),
@@ -401,13 +435,11 @@ module.exports = {
                 } },
                 {new: true},
             );
-
+            
             productUpdated.save()
         } catch (error) {
             return res.status(500).json('Internal server error')
         }
-        
-
 
         return res.status(201).json('Avaliação inserida com sucesso!')
     },
@@ -477,18 +509,18 @@ module.exports = {
 
     async replyRating(req, res) {
         const {sellerAuth} = req
-        const {ratingId} = req.params
+        const {id} = req.query
         const {replyComment} = req.body
 
         try {
-            await Product.updateMany({"rating._id": ratingId},
+            await Product.updateMany({"rating._id": id},
             {$set: {
                 "rating.$[element].replyRating": {
                     sellerId: sellerAuth._id,
                     replyReview: replyComment
                 }
             }},
-            {arrayFilters: [{"element._id": ratingId}]}
+            {arrayFilters: [{"element._id": id}]}
             )
 
             return res.status(201).json('Resposta enviada com sucesso!')

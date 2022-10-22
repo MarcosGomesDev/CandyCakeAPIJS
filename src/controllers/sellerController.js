@@ -13,17 +13,31 @@ const CepCoords = require('coordenadas-do-cep')
 var date = moment().format('LLL')
 
 module.exports = {
-    //RETURN ALL SELLERS
+    // RETORNA TODOS OS VENDEDORES
     async index(req, res) {
         const sellers = await Seller.find().populate('products')
         return res.json(sellers)
     },
 
-    async selected(req, res) {
-        const {id} = req.params
+    // RETORNA PRO USUÁRIO O VENDEDOR E OS PRODUTOS DO MESMO
+    async selectedSeller(req, res) {
+        const {userAuth} = req
+        const {id} = req.query
 
         try {
-            const seller = await Seller.findOne({_id: id}).populate('products')
+            const seller = await Product.find({seller: id}, {publicImages: 0, ratingSum: 0, description: 0, createdAt: 0})
+            .populate({
+                path: 'category',
+                select: ['name']
+            })
+            .populate({
+                path: 'subcategory',
+                select: ['name']
+            })
+            .populate({
+                path: 'seller',
+                select: ['name', 'avatar']
+            })
 
             return res.status(200).json(seller)
         } catch (error) {
@@ -31,7 +45,8 @@ module.exports = {
         }
     },
 
-    async productsBySeller(req, res) {
+    // RETORNA OS PRODUTOS DO VENDEDOR LOGADO
+    async sellerProducts(req, res) {
         const {sellerAuth} = req
 
         try {
@@ -46,7 +61,7 @@ module.exports = {
         }
     },
 
-    //CREATE SELLER
+    //CADASTRA UM NOVO VENDEDOR
     async register(req, res) {
         const {
             name,
@@ -135,7 +150,7 @@ module.exports = {
         }
     },
 
-    // DELETE SELLER
+    // DELETA A CONTA DO VENDEDOR
     async delete(req, res) {
         const {seller} = req
         try {
@@ -156,8 +171,8 @@ module.exports = {
         }
     },
 
-    // Login SELLER
-    async login(req, res, next) {
+    // LOGIN DO VENDEDOR
+    async login(req, res) {
         const {email, password} = req.body
 
         //Validations
@@ -166,9 +181,10 @@ module.exports = {
         }
         
         //Check if SELLER exists
-        const seller = await Seller.findOne({email: email})
+        const user = await Seller.findOne({email: email}, 
+            {name: 1, email: 1, password: 1, avatar: 1, seller: 1, admin: 1})
 
-        if(!seller) {
+        if(!user) {
             return res.status(401).json('Usuário não encontrado!')
         }
 
@@ -177,7 +193,7 @@ module.exports = {
         }
 
         //Check if password match
-        const checkPassword = await bcrypt.compare(password, seller.password)
+        const checkPassword = await bcrypt.compare(password, user.password)
 
         if(!checkPassword) {
             return res.status(401).json('Senha inválida!')
@@ -187,18 +203,19 @@ module.exports = {
             const secret = process.env.SECRET
 
             const token = jwt.sign({
-                sellerId: seller._id
+                sellerId: user._id
             }, secret, {expiresIn: '1d'})
 
-            return res.status(200).json({seller, token})
 
+            
+            return res.status(200).json({user, token})
 
         } catch (err) {
             return res.status(500).json('Erro ao logar usuário, tente novamente mais tarde!')
         }
     },
 
-    //SEND LINK FOR RESET PASSWORD
+    // ENVIA O LINK COM O TOKEN PARA REDEFINIR A SENHA
     async forgotPassword(req, res) {
         const {email} = req.body
 
@@ -231,6 +248,7 @@ module.exports = {
         }
     },
 
+    // VERIFICA SE O TOKEN INSERIDO PELO VENDEDOR É VÁLIDO
     async verifyToken(req, res) {
         const {email} = req.query
         const {token} = req.body
@@ -257,7 +275,7 @@ module.exports = {
         }
     },
 
-    //RESET AND SAVE NEW PASSWORD
+    // MUDA E TROCA A SENHA POR UMA NOVA
     async resetPassword(req, res) {
         const {token} = req.query
         const {password} = req.body
@@ -291,7 +309,7 @@ module.exports = {
         }
     },
 
-    //UPLOAD PROFILE
+    // INSERE A FOTO DA LOJA DO VENDEDOR
     async uploadProfile(req, res) {
         const {seller} = req
         if(!seller) {
@@ -319,6 +337,7 @@ module.exports = {
         }
     },
 
+    // INSERE OS CONTATOS DO VENDEDOR
     async insertSocialMedias(req, res) {
         const {sellerAuth} = req
         const {instagram, whatsapp, facebook} = req.body
