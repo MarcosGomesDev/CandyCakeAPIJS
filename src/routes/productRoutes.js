@@ -7,16 +7,38 @@ const upload = require('../middlewares/uploadImage')
 const productRoutes = express.Router()
 
 // ROTAS DO PRODUTO
-productRoutes.get('/products', product.index) // RETURNA TODOS OS PRODUTOS
-productRoutes.get('/products/search', product.search) // PROCURA POR PRODUTOS POR NOME
-productRoutes.get('/product', isAuthUser, product.oneProduct) // RETORNA UM PRODUTO ESPECÍFICO
-productRoutes.get('/product/:id/comments', isAuthUser, product.getAllCommentByProduct) // RETORNA TODOS OS COMENTÁRIOS DO PRODUTO
-productRoutes.post('/product/create', isAuthSeller, upload.array('images', 3), product.create) // CRIA UM NOVO PRODUTO
-productRoutes.post('/product/update', isAuthSeller, upload.array('images', 3), product.update) // ATUALIZA O PRODUTO
-productRoutes.post('/:id/comment/new', isAuthUser, product.addNewRating) // INSERE UMA NOVA AVALIAÇÃO & COMENTÁRIO
-productRoutes.delete('/product/:id/rating/delete', isAuthUser, product.deleteRating) // REMOVE A AVALIAÇÃO & COMENTÁRIO
-productRoutes.post('/product/rating', isAuthSeller, product.replyRating) // INSERE UMA RESPOSTA AO COMENTÁRIO DO USUÁRIO
-productRoutes.delete('/product/rating/:id', isAuthSeller, product.deleteReplyRating) // REMOVE A RESPOSTA DO VENDEDOR AO COMENTÁRIO DO USUÁRIO
-productRoutes.delete('/product/delete', product.delete) // DELETA O PRODUTO
+
+// RETURNA TODOS OS PRODUTOS (FEITO)
+productRoutes.get('/products', product.index)
+
+// PROCURA POR PRODUTOS POR NOME
+productRoutes.get('/products/search', product.search)
+
+// RETORNA UM PRODUTO ESPECÍFICO (FEITO)
+productRoutes.get('/product', product.oneProduct)
+
+// RETORNA TODOS OS COMENTÁRIOS DO PRODUTO (FEITO)
+productRoutes.get('/product/:id/comments', product.getAllCommentByProduct)
+
+// CRIA UM NOVO PRODUTO (FEITO)
+productRoutes.post('/product/create', isAuthSeller, upload.array('images', 3), product.create)
+
+// ATUALIZA O PRODUTO (FEITO)
+productRoutes.post('/product/:id/update', isAuthSeller, upload.array('images', 3), product.update)
+
+// INSERE UMA NOVA AVALIAÇÃO & COMENTÁRIO (FEITO)
+productRoutes.post('/:id/comment/new', isAuthUser, product.addNewRating)
+
+// REMOVE A AVALIAÇÃO & COMENTÁRIO (FEITO)
+productRoutes.delete('/product/:id/rating/delete', isAuthUser, product.deleteRating)
+
+// INSERE UMA RESPOSTA AO COMENTÁRIO DO USUÁRIO (FEITO)
+productRoutes.post('/product/rating', isAuthSeller, product.replyRating)
+
+// REMOVE A RESPOSTA DO VENDEDOR AO COMENTÁRIO DO USUÁRIO (FEITO)
+productRoutes.delete('/product/rating/:id', isAuthSeller, product.deleteReplyRating)
+
+// DELETA O PRODUTO (FEITO)
+productRoutes.delete('/product/:id/delete', isAuthSeller, product.delete)
 
 module.exports = productRoutes

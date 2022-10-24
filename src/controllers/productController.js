@@ -29,7 +29,6 @@ module.exports = {
 
     // RETURN ONE PRODUCT BY ID
     async oneProduct(req, res) {
-        const {userAuth} = req
         const {id} = req.query
         try {
             const product = await Product.findOne({_id: id})
@@ -55,7 +54,6 @@ module.exports = {
 
     //RETORNA TODOS OS COMENTÁRIOS DE UM PRODUTO
     async getAllCommentByProduct(req, res) {
-        const {userAuth} = req
         const {id} = req.params
 
         try {
@@ -202,7 +200,7 @@ module.exports = {
     // ATUALIZA OS DADOS DO PRODUTO
     async update(req, res) {
         const {sellerAuth} = req
-        const {id} = req.query
+        const {id} = req.params
         const {name, price, description, category, subcategory} = req.body
 
         if(!id) {
@@ -284,8 +282,9 @@ module.exports = {
 
     // REMOVE PRODUCT FROM DB AND PRODUCTS LIST FROM SELLER
     async delete(req, res) {
-        const {id} = req.query
-
+        const {sellerAuth} = req
+        const {id} = req.params
+        
         try {
             const prod = await Product.findById({_id: id})
             for (let index = 0; index < prod.publicImages.length; index++) {
@@ -517,6 +516,7 @@ module.exports = {
             {$set: {
                 "rating.$[element].replyRating": {
                     sellerId: sellerAuth._id,
+                    sellerName: sellerAuth.name,
                     replyReview: replyComment
                 }
             }},
@@ -531,16 +531,16 @@ module.exports = {
 
     async deleteReplyRating(req, res) {
         const {sellerAuth} = req
-        const {ratingId} = req.params
+        const {id} = req.params
 
         try {
-            await Product.updateMany({"rating._id": ratingId},
+            await Product.updateMany({"rating._id": id},
             {$pull: {
                 "rating.$[element].replyRating": {
                     sellerId: sellerAuth._id
                 }
             }},
-            {arrayFilters: [{"element._id": ratingId}]}
+            {arrayFilters: [{"element._id": id}]}
             )
 
             return res.status(201).json("Resposta excluida com sucesso!")

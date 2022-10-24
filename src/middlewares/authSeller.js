@@ -26,6 +26,7 @@ exports.isAuthSeller = async (req, res, next) => {
 
         
     } else {
+        console.log('ta dizendo q n ta chegando o token')
         return res.status(400).json('Autorização inválida!')
     }
 }
