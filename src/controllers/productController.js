@@ -78,42 +78,55 @@ module.exports = {
 
     // SEARCH PRODUCTS
     async search(req, res) {    
-        const {name, longitude, latitude} = req.query
-
+        const {name, longitude, latitude, rating, range} = req.query
+        let {page, limit} = req.query
         const regex = new RegExp(name, 'i')
+        if (!page) page = 1;
+        if (!limit) limit = 20;
+        const skip = (page - 1) * 10;
+
         try {
+            
             const products = await Product.find({
-                name: {
-                    $in: regex
-                }
-            }, {name: 1, price: 1, images: 1})
-            .populate({
-                path: 'category',
-                select: ['name']
-            })
-            .populate({
-                path: 'subcategory',
-                select: ['name']
-            })
-            .populate({
-                path: 'seller',
-                select: ['location']
-            })
+                    name: {
+                        $in: regex
+                    }
+                }, {name: 1, price: 1, images: 1, ratingAverage: 1})
+                .populate({
+                    path: 'category',
+                    select: ['name']
+                })
+                .populate({
+                    path: 'subcategory',
+                    select: ['name']
+                })
+                .populate({
+                    path: 'seller',
+                    select: ['location', 'name']
+                }).skip(skip).limit(limit).exec()
 
             const productsDistances = []
 
             products.map((product) => {
-                let distance = getDistanceInKm(latitude, longitude, 
+                let distance = getDistanceInKm(latitude, longitude,
                     product.seller.location.coordinates[1], product.seller.location.coordinates[0])
-                productsDistances.push(parseFloat(distance) + ' km')
-            })
-            
-            const result = []
-            for(let i = 0; i < products.length; i++) {
-                result.push({product: products[i], distance: productsDistances[i].replace('.', ',')})
-            }
 
-            return res.json(result)
+                    productsDistances.push({distance: parseFloat(distance)})
+            })
+
+            const list = products.map((item, i) => ({...item._doc, ...productsDistances[i]}))
+            .filter((item) => item.distance <= range && item.ratingAverage >= rating)
+
+            // const byDistancia = list.filter((item) => item.distance <= range)
+
+            // const byRange = byDistancia.filter((item) => item.ratingAverage >= rating)
+
+            // const result = byRange.sort((a, b) => a.distance - b.distance)
+
+            const result = list.sort((a, b) => a.distance - b.distance)
+
+            return res.status(200).json(result)
+            
         } catch (error) {
             console.log(error)
             return res.status(500).json('Erro ao retornar produtos com esse filtro')

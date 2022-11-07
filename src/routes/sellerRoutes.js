@@ -30,7 +30,7 @@ sellerRoutes.post('/seller/forgot-password', seller.forgotPassword)
 sellerRoutes.post('/seller/valid-token', seller.verifyToken)
 
 // ALTERA E SALVA A SENHA NOVA (FEITO)
-sellerRoutes.post('/seller/reset-password', seller.resetPassword)
+sellerRoutes.post('/seller/reset-password/:token', seller.resetPassword)
 
 
 sellerRoutes.post('/cep', seller.getLatLong)

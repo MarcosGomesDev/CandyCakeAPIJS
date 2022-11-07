@@ -12,7 +12,7 @@ const productRoutes = express.Router()
 productRoutes.get('/products', product.index)
 
 // PROCURA POR PRODUTOS POR NOME
-productRoutes.get('/products/search', product.search)
+productRoutes.get('/product/search', product.search)
 
 // RETORNA UM PRODUTO ESPECÍFICO (FEITO)
 productRoutes.get('/product', product.oneProduct)

@@ -96,7 +96,7 @@ module.exports = {
         
         //Check if user exists
         const user = await User.findOne({email: email}, 
-            {name: 1, email: 1, password: 1, avatar: 1, seller: 1, admin: 1})
+            {name: 1, lastname: 1, email: 1, password: 1, avatar: 1, seller: 1, admin: 1})
 
         if(!user) {
             return res.status(401).json('Não existe nenhum usuário com este email!')
@@ -119,7 +119,18 @@ module.exports = {
                 userId: user._id
             }, secret, {expiresIn: '1d'})
 
-            return res.status(200).json({user, token})
+            const data = {
+                _id: user._id,
+                name: user.name,
+                lastname: user.lastname,
+                email: user.email,
+                avatar: user.avatar,
+                seller: user.seller,
+                admin: user.admin,
+                token: token,
+            }
+
+            return res.status(200).json(data)
         } catch (err) {
             console.log(err)
             return res.status(500).json('Erro ao logar usuário, tente novamente mais tarde!')
@@ -155,6 +166,7 @@ module.exports = {
             }).save();
 
             const link = `${newResetToken.token}`;
+            console.log(link)
             await sendEmail(user.email, "Redefinir senha"
                 ,`Seu código de redefinição de senha é: ${link}`
             )
@@ -168,8 +180,7 @@ module.exports = {
 
     // VERIFICA SE O TOKEN ESTÁ VÁLIDO PARA REDEFINIR A SENHA
     async verifyToken(req, res) {
-        const {email} = req.query
-        const {token} = req.body
+        const {email, token} = req.body
 
         try {
             const user = await User.findOne({email: email})
@@ -196,7 +207,7 @@ module.exports = {
     // ALTERA E SALVA A NOVA SENHA
     async resetPassword(req, res) {
         const {password} = req.body
-        const {token} = req.query
+        const {token} = req.params
 
         try {
             if(!password) {

@@ -65,6 +65,8 @@ module.exports = {
     async register(req, res) {
         const {
             name,
+            lastName,
+            storeName,
             email,
             password,
             cep,
@@ -118,6 +120,8 @@ module.exports = {
             // METHOD OF SAVE NEW SELLER
             const seller = new Seller({
                 name,
+                lastName,
+                storeName,
                 email,
                 seller: true,
                 admin: false,
@@ -206,9 +210,18 @@ module.exports = {
                 sellerId: user._id
             }, secret, {expiresIn: '1d'})
 
-
+            const data = {
+                _id: user._id,
+                name: user.name,
+                lastname: user.lastname,
+                email: user.email,
+                avatar: user.avatar,
+                seller: user.seller,
+                admin: user.admin,
+                token: token,
+            }
             
-            return res.status(200).json({user, token})
+            return res.status(200).json(data)
 
         } catch (err) {
             return res.status(500).json('Erro ao logar usuário, tente novamente mais tarde!')
@@ -277,7 +290,7 @@ module.exports = {
 
     // MUDA E TROCA A SENHA POR UMA NOVA
     async resetPassword(req, res) {
-        const {token} = req.query
+        const {token} = req.params
         const {password} = req.body
         try {
             if(!password) {

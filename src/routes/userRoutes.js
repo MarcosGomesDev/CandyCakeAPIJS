@@ -29,7 +29,7 @@ userRoutes.post('/user/forgot-password', user.forgotPassword)
 userRoutes.post('/user/valid-token', user.verifyToken)
 
 // ALTERA E SALVA A SENHA NOVA (FEITO)
-userRoutes.post('/user/reset-password', user.resetPassword)
+userRoutes.post('/user/reset-password/:token', user.resetPassword)
 
 // SALVA A IMAGEM DE PERFIL DO USUÁRIO (FEITO)
 userRoutes.post('/user/upload-profile', isAuthUser, upload.single('avatar'), user.uploadProfile)
