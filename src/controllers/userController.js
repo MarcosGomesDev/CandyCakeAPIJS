@@ -74,6 +74,34 @@ module.exports = {
         }
     },
 
+    // ATUALIZA OS DADOS DO USUARIO
+    async updateUser(req, res) {
+        const {userAuth} = req
+        const {name, lastname, email} = req.body
+
+        try {
+            const user = await User.findById(userAuth._id)
+
+            if(!user) {
+                return res.status(400).json('Este usuário não existe!')
+            }
+
+            await user.updateOne({
+                $set: {
+                    name: name,
+                    lastname: lastname,
+                    email: email,
+                    updatedAt: date
+                }
+            })
+
+            return res.status(201).json('Dados atualizados com sucesso')
+
+        } catch (error) {
+            return res.status(500).json('Erro ao atualizar dados do usuário')
+        }
+    },
+
     // EXCLUÍ O USUÁRIO
     async delete(req, res) {
         const {userAuth} = req

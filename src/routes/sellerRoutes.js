@@ -20,6 +20,9 @@ sellerRoutes.get('/seller', isAuthUser, seller.selectedSeller)
 // CRIA UM NOVO VENDEDOR (FEITO)
 sellerRoutes.post('/sign-up/seller', seller.register)
 
+// ATUALIZA OS DADOS DO VENDEDOR
+sellerRoutes.post('/seller/update', isAuthSeller, seller.updateSeller)
+
 // LOGIN VENDEDOR (FEITO)
 sellerRoutes.post('/sign-in/seller', seller.login)
 
@@ -34,9 +37,6 @@ sellerRoutes.post('/seller/reset-password/:token', seller.resetPassword)
 
 
 sellerRoutes.post('/cep', seller.getLatLong)
-
-// INSERE OS CONTATOS DE MÍDIA SOCIAIS DO VENDEDOR (FEITO)
-sellerRoutes.post('/socialmedias', seller.insertSocialMedias)
 
 // ATUALIZA A IMAGEM DO VENDEDOR (FEITO)
 sellerRoutes.post('/seller/upload-profile', isAuthSeller, upload.single('avatar'), seller.uploadProfile)

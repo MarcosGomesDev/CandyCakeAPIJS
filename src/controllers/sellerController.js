@@ -154,6 +154,47 @@ module.exports = {
         }
     },
 
+    // ATUALIZA DADOS DO VENDEDOR
+    async updateSeller(req, res) {
+        const {sellerAuth} = req
+        const {name, lastName, storeName, email, instagram, facebook, whatsapp} = req.body
+
+        try {
+            const seller = await Seller.findById(sellerAuth._id)
+
+            if(!seller) {
+                return res.status(400).json('Este usuário não existe!')
+            }
+
+            await seller.updateOne({
+                $set: {
+                    name: name,
+                    lastName: lastName,
+                    email: email,
+                    storeName: storeName,
+                    socialMedias: {
+                        instagram: instagram,
+                        whatsapp: whatsapp,
+                        facebook: facebook
+                    },
+                    updatedAt: date
+                }
+            })
+
+
+
+            const socialMedias = seller.socialMedias
+
+            console.log(socialMedias)
+
+            return res.status(201).json({message: 'Dados atualizados com sucesso', socialMedias})
+
+        } catch (error) {
+            console.log(error)
+            return res.status(500).json('Erro ao atualizar dados do usuário')
+        }
+    },
+
     // DELETA A CONTA DO VENDEDOR
     async delete(req, res) {
         const {seller} = req
@@ -185,8 +226,7 @@ module.exports = {
         }
         
         //Check if SELLER exists
-        const user = await Seller.findOne({email: email}, 
-            {name: 1, email: 1, password: 1, avatar: 1, seller: 1, admin: 1})
+        const user = await Seller.findOne({email: email})
 
         if(!user) {
             return res.status(401).json('Usuário não encontrado!')
@@ -214,11 +254,13 @@ module.exports = {
                 _id: user._id,
                 name: user.name,
                 lastname: user.lastname,
+                storeName: user.storeName,
                 email: user.email,
                 avatar: user.avatar,
                 seller: user.seller,
                 admin: user.admin,
                 token: token,
+                socialMedias: user.socialMedias
             }
             
             return res.status(200).json(data)

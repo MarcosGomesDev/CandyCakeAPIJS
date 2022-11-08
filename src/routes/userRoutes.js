@@ -19,6 +19,9 @@ userRoutes.get('/user/favorites', isAuthUser, user.allFav)
 // CRIA UM NOVO USUÁRIO (FEITO)
 userRoutes.post('/sign-up/user', user.register)
 
+// ATUALIZA DADOS DO USUÁRIO
+userRoutes.post('/user/update', isAuthUser, user.updateUser)
+
 // LOGIN USUÁRIO (FEITO)
 userRoutes.post('/sign-in/user', user.login)
 
